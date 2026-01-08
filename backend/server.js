@@ -10,7 +10,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 
-// Trust proxy for Koyeb/Vercel/cloud deployments (fixes rate limiter X-Forwarded-For issue)
+// Trust proxy for Koyeb/cloud deployments (fixes rate limiter issue)
 app.set('trust proxy', 1);
 
 const server = http.createServer(app);
@@ -133,11 +133,16 @@ const fetchLocalStockData = (symbols) => {
     const stockData = [];
     const dataDir = path.join(__dirname, 'ml_training', 'data');
     
+    console.log(`📂 Data directory: ${dataDir}`);
+    console.log(`📋 Looking for symbols: ${symbols.join(', ')}`);
+    
     for (const symbol of symbols) {
         try {
             // Clean symbol (remove .NS if present)
             const cleanSymbol = symbol.replace('.NS', '').replace('.BO', '').toUpperCase();
             const filePath = path.join(dataDir, `${cleanSymbol}_data.json`);
+            
+            console.log(`🔍 Checking file: ${filePath}`);
             
             if (fs.existsSync(filePath)) {
                 const fileData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -175,13 +180,17 @@ const fetchLocalStockData = (symbols) => {
                         lastUpdate: latest.date,
                         dataSource: 'local'
                     });
+                    console.log(`✅ Loaded local data for ${cleanSymbol}`);
                 }
+            } else {
+                console.log(`❌ File not found: ${filePath}`);
             }
         } catch (error) {
             console.log(`Error reading local data for ${symbol}:`, error.message);
         }
     }
     
+    console.log(`📊 Loaded ${stockData.length} stocks from local data`);
     return stockData;
 };
 
