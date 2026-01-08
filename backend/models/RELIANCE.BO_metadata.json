@@ -1,0 +1,6 @@
+{
+  "symbol": "RELIANCE.BO",
+  "sequence_length": 60,
+  "trained_date": "2025-11-21T21:47:47.074528",
+  "model_type": "SimpleLinearRegression"
+}

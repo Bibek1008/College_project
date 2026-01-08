@@ -12,9 +12,10 @@ backend/ml_training/logs/
 # Keep data files for deployment - removed from gitignore
 # backend/ml_training/data/
 
-backend/models/*.joblib
-backend/models/*_scaler.joblib
-backend/models/*_metadata.json
+# Keep model files for deployment - they are pre-trained
+# backend/models/*.joblib
+# backend/models/*_scaler.joblib
+# backend/models/*_metadata.json
 backend/tmp_train_response.json
 
 *.log

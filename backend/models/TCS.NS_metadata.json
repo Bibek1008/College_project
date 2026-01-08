@@ -1,0 +1,6 @@
+{
+  "symbol": "TCS.NS",
+  "sequence_length": 60,
+  "trained_date": "2025-11-21T21:52:21.144225",
+  "model_type": "SimpleLinearRegression"
+}
