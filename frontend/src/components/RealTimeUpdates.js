@@ -31,7 +31,7 @@ import {
   FlashOnOutlined as FlashIcon,
 } from '@mui/icons-material';
 
-const API_URL = process.env.REACT_APP_API_BASE_URL || `http://${window.location.hostname}:5002`;
+import { API_URL } from '../config';
 
 const RealTimeUpdates = ({ darkMode }) => {
   const [isConnected, setIsConnected] = useState(false);

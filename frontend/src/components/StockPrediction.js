@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
+import { API_URL } from '../config';
 
 const StockPrediction = () => {
   const { symbol } = useParams();
@@ -327,4 +328,3 @@ const StockPrediction = () => {
 };
 
 export default StockPrediction;
-const API_URL = process.env.REACT_APP_API_BASE_URL || `http://${window.location.hostname}:5001`;

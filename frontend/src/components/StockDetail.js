@@ -24,7 +24,7 @@ import {
   Legend,
 } from 'chart.js';
 
-const API_URL = process.env.REACT_APP_API_BASE_URL || `http://${window.location.hostname}:5001`;
+import { API_URL } from '../config';
 
 ChartJS.register(
   CategoryScale,

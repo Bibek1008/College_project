@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { API_URL } from '../config';
 import {
   Box,
   Card,
@@ -113,8 +114,6 @@ const calculateMetrics = (data) => {
     momentum: parseFloat(momentum.toFixed(2)),
   };
 };
-
-const API_URL = process.env.REACT_APP_API_BASE_URL || `http://${window.location.hostname}:5002`;
 
 const StockComparison = () => {
   const [selectedStocks, setSelectedStocks] = useState(['TCS.NS', 'RELIANCE.NS']);

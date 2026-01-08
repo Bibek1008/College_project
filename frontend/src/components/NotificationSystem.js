@@ -25,8 +25,9 @@ import {
   VolumeOff as SoundOffIcon
 } from '@mui/icons-material';
 import { io } from 'socket.io-client';
+import { WS_URL } from '../config';
 
-const API_URL = 'http://localhost:5002';
+const API_URL = WS_URL;
 
 // Singleton socket instance - created once at module load
 let socket = null;

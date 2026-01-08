@@ -20,8 +20,7 @@ import { Search as SearchIcon, TrendingUp as TrendingUpIcon, ModelTraining as Mo
 import axios from 'axios';
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+import { API_URL } from '../config';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {

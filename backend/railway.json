@@ -1,0 +1,13 @@
+{
+  "name": "stock-prediction-backend",
+  "version": "1.0.0",
+  "description": "Stock Prediction Backend with ML and WebSocket",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
