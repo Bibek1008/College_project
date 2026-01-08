@@ -66,13 +66,15 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
     { text: 'Dashboard', icon: <DashboardIcon className="w-5 h-5" />, path: '/dashboard' },
     { text: 'Predictions', icon: <TrendingUpIcon className="w-5 h-5" />, path: '/predictions' },
     { text: 'Portfolio', icon: <PortfolioIcon className="w-5 h-5" />, path: '/portfolio' },
+    { text: 'News', icon: <ArticleIcon className="w-5 h-5" />, path: '/news' },
+  ];
+
+  const moreMenuItems = [
     { text: 'Compare', icon: <CompareIcon className="w-5 h-5" />, path: '/compare' },
     { text: 'Live Updates', icon: <LiveIcon className="w-5 h-5" />, path: '/live' },
     { text: 'Sentiment', icon: <SentimentIcon className="w-5 h-5" />, path: '/sentiment' },
-    { text: 'News', icon: <ArticleIcon className="w-5 h-5" />, path: '/news' },
     { text: 'About', icon: <InfoIcon className="w-5 h-5" />, path: '/about' },
     { text: 'Contact', icon: <ContactMailIcon className="w-5 h-5" />, path: '/contact' },
-    ...(isLoggedIn ? [] : [{ text: 'Login', icon: <SentimentIcon className="w-5 h-5" />, path: '/auth' }]),
   ];
 
   const isActive = (path) => {
@@ -123,12 +125,12 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
           </div>
 
           {/* Desktop navigation */}
-          <nav className="hidden md:flex space-x-6">
+          <nav className="hidden lg:flex items-center space-x-4">
             {menuItems.map((item) => (
               <Link
                 key={item.text}
                 to={item.path}
-                className={`flex items-center text-sm font-medium px-3 py-2 rounded-lg transition-all duration-200 ${
+                className={`flex items-center text-sm font-medium px-3 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                   isActive(item.path)
                     ? 'text-primary bg-primary bg-opacity-10'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700'
@@ -138,27 +140,73 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                 {item.text}
               </Link>
             ))}
+            
+            {/* More dropdown */}
+            <div className="relative group">
+              <button className="flex items-center text-sm font-medium px-3 py-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 transition-all duration-200">
+                <span className="mr-1.5">•••</span>
+                More
+              </button>
+              
+              {/* Dropdown menu */}
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="py-2">
+                  {moreMenuItems.map((item) => (
+                    <Link
+                      key={item.text}
+                      to={item.path}
+                      className={`flex items-center px-4 py-2 text-sm transition-colors duration-200 ${
+                        isActive(item.path)
+                          ? 'text-primary bg-primary bg-opacity-10'
+                          : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <span className="mr-3">{item.icon}</span>
+                      {item.text}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
           </nav>
 
           {/* Right-side buttons */}
-          <div className="hidden md:flex items-center justify-end md:flex-1 lg:w-0 space-x-3">
+          <div className="flex items-center space-x-2 lg:space-x-3">
+            {/* Search button for mobile/tablet */}
+            <button className="lg:hidden p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 transition-colors duration-200">
+              <SearchIcon className="h-5 w-5" />
+            </button>
+            
+            {/* Dark mode toggle */}
             <button 
-              className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+              className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 transition-colors duration-200"
               onClick={toggleDarkMode}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {darkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
             </button>
-            <NotificationSystem darkMode={darkMode} />
+            
+            {/* Notifications */}
+            <div className="hidden sm:block">
+              <NotificationSystem darkMode={darkMode} />
+            </div>
+            
+            {/* Auth button */}
             <div className="flex items-center">
               {isLoggedIn ? (
                 <button 
-                  className="px-3 py-1 rounded-lg text-white bg-primary hover:opacity-90"
+                  className="px-4 py-2 text-sm font-medium rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors duration-200"
                   onClick={handleLogout}
                 >
                   Logout
                 </button>
               ) : (
-                <Link to="/auth" className="px-3 py-1 rounded-lg text-white bg-primary hover:opacity-90">Login</Link>
+                <Link 
+                  to="/auth" 
+                  className="px-4 py-2 text-sm font-medium rounded-lg text-white bg-primary hover:bg-primary-dark transition-colors duration-200"
+                >
+                  Login
+                </Link>
               )}
             </div>
           </div>
@@ -214,7 +262,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
           {/* Mobile menu items */}
           <nav className="flex-1 pt-4 pb-4 px-2 bg-white dark:bg-dark-paper overflow-y-auto">
             <div className="space-y-1">
-              {menuItems.map((item) => (
+              {[...menuItems, ...moreMenuItems].map((item) => (
                 <Link
                   key={item.text}
                   to={item.path}
@@ -230,6 +278,19 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                   {item.text}
                 </Link>
               ))}
+              
+              {/* Login/Logout for mobile */}
+              {!isLoggedIn && (
+                <Link
+                  to="/auth"
+                  className="group flex items-center px-3 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  <span className="mr-3 flex-shrink-0 text-gray-500 dark:text-gray-400">
+                    <SentimentIcon className="w-5 h-5" />
+                  </span>
+                  Login
+                </Link>
+              )}
             </div>
           </nav>
           

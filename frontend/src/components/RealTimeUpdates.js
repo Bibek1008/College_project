@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import axios from 'axios';
 import {
   Box,
   Card,
@@ -17,42 +18,127 @@ import {
   IconButton,
   Tooltip,
   Badge,
-  Paper,
   Divider,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   TrendingUpOutlined as TrendingUpIcon,
   TrendingDownOutlined as TrendingDownIcon,
-  PauseOutlined as PauseIcon,
-  PlayArrowOutlined as PlayIcon,
   RefreshOutlined as RefreshIcon,
-  NotificationsActiveOutlined as NotificationIcon,
   ShowChartOutlined as ChartIcon,
   VolumeUpOutlined as VolumeIcon,
   FlashOnOutlined as FlashIcon,
 } from '@mui/icons-material';
 
+const API_URL = process.env.REACT_APP_API_BASE_URL || `http://${window.location.hostname}:5002`;
+
 const RealTimeUpdates = ({ darkMode }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [stockUpdates, setStockUpdates] = useState([]);
-  const [watchlist, setWatchlist] = useState(['TCS.NS', 'RELIANCE.NS', 'INFY.NS', 'HDFC.NS', 'ICICI.NS']);
+  const [watchlistData, setWatchlistData] = useState({});
+  const [watchlist] = useState([
+    'TCS.NS', 'RELIANCE.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS',
+    'HINDUNILVR.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'KOTAKBANK.NS'
+  ]);
   const [notifications, setNotifications] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [updateCount, setUpdateCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [lastFetchTime, setLastFetchTime] = useState(null);
   const intervalRef = useRef(null);
   const audioRef = useRef(null);
+  const previousPrices = useRef({});
 
-  const stockData = {
-    'TCS.NS': { name: 'Tata Consultancy Services', price: 3245.50, color: '#2196F3' },
-    'RELIANCE.NS': { name: 'Reliance Industries', price: 2456.75, color: '#4CAF50' },
-    'INFY.NS': { name: 'Infosys Limited', price: 1678.90, color: '#FF9800' },
-    'HDFC.NS': { name: 'HDFC Bank', price: 1534.25, color: '#9C27B0' },
-    'ICICI.NS': { name: 'ICICI Bank', price: 987.60, color: '#F44336' },
-    'SBI.NS': { name: 'State Bank of India', price: 543.80, color: '#00BCD4' },
-    'ITC.NS': { name: 'ITC Limited', price: 234.15, color: '#795548' },
-    'WIPRO.NS': { name: 'Wipro Limited', price: 456.30, color: '#607D8B' },
+  const stockMeta = {
+    'TCS.NS': { name: 'Tata Consultancy Services', color: '#2196F3' },
+    'RELIANCE.NS': { name: 'Reliance Industries', color: '#4CAF50' },
+    'INFY.NS': { name: 'Infosys Limited', color: '#FF9800' },
+    'HDFCBANK.NS': { name: 'HDFC Bank', color: '#9C27B0' },
+    'ICICIBANK.NS': { name: 'ICICI Bank', color: '#F44336' },
+    'HINDUNILVR.NS': { name: 'Hindustan Unilever', color: '#00BCD4' },
+    'SBIN.NS': { name: 'State Bank of India', color: '#795548' },
+    'BHARTIARTL.NS': { name: 'Bharti Airtel', color: '#607D8B' },
+    'ITC.NS': { name: 'ITC Limited', color: '#E91E63' },
+    'KOTAKBANK.NS': { name: 'Kotak Mahindra Bank', color: '#3F51B5' },
   };
+
+  // Fetch real stock data from backend
+  const fetchStockData = useCallback(async (symbol) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/stocks/${symbol}`, { timeout: 10000 });
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching ${symbol}:`, error.message);
+      return null;
+    }
+  }, []);
+
+  // Fetch all watchlist stocks
+  const fetchAllStocks = useCallback(async () => {
+    setLoading(true);
+    setIsConnected(true);
+    
+    const results = {};
+    const updates = [];
+    
+    for (const symbol of watchlist) {
+      const data = await fetchStockData(symbol);
+      if (data) {
+        const price = data.regularMarketPrice || data.price;
+        const prevClose = data.regularMarketPreviousClose || price;
+        const change = data.regularMarketChange || (price - prevClose);
+        const changePercent = data.regularMarketChangePercent || ((change / prevClose) * 100);
+        const volume = data.regularMarketVolume || data.volume || 0;
+        
+        // Check if price changed from previous fetch
+        const prevPrice = previousPrices.current[symbol];
+        const priceChanged = prevPrice && prevPrice !== price;
+        
+        results[symbol] = {
+          price,
+          change,
+          changePercent,
+          volume,
+          name: stockMeta[symbol]?.name || data.shortName || symbol,
+          lastUpdate: new Date(),
+        };
+        
+        // Create update entry if price changed or first fetch
+        if (!prevPrice || priceChanged) {
+          updates.push({
+            id: Date.now() + Math.random(),
+            symbol,
+            name: stockMeta[symbol]?.name || data.shortName || symbol,
+            price: price.toFixed(2),
+            change: change.toFixed(2),
+            changePercent: changePercent.toFixed(2),
+            volume,
+            timestamp: new Date(),
+            isPositive: change >= 0,
+            isNew: priceChanged,
+          });
+          
+          // Play sound for significant changes
+          if (notifications && priceChanged && Math.abs(changePercent) > 1) {
+            playNotificationSound();
+          }
+        }
+        
+        previousPrices.current[symbol] = price;
+      }
+    }
+    
+    setWatchlistData(results);
+    
+    if (updates.length > 0) {
+      setStockUpdates(prev => [...updates, ...prev].slice(0, 50));
+      setUpdateCount(prev => prev + updates.length);
+    }
+    
+    setLastFetchTime(new Date());
+    setLoading(false);
+  }, [watchlist, fetchStockData, notifications]);
 
   useEffect(() => {
     // Initialize audio for notifications
@@ -60,67 +146,20 @@ const RealTimeUpdates = ({ darkMode }) => {
   }, []);
 
   useEffect(() => {
+    // Initial fetch
+    fetchAllStocks();
+    
     if (autoRefresh) {
-      startRealTimeUpdates();
-    } else {
-      stopRealTimeUpdates();
+      // Refresh every 30 seconds (to avoid rate limiting)
+      intervalRef.current = setInterval(fetchAllStocks, 30000);
     }
 
-    return () => stopRealTimeUpdates();
-  }, [autoRefresh, watchlist]);
-
-  const startRealTimeUpdates = () => {
-    setIsConnected(true);
-    intervalRef.current = setInterval(() => {
-      generateStockUpdate();
-    }, 2000); // Update every 2 seconds
-  };
-
-  const stopRealTimeUpdates = () => {
-    setIsConnected(false);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
-
-  const generateStockUpdate = () => {
-    const randomStock = watchlist[Math.floor(Math.random() * watchlist.length)];
-    const basePrice = stockData[randomStock]?.price || 1000;
-    
-    // Generate realistic price change (-2% to +2%)
-    const changePercent = (Math.random() - 0.5) * 4;
-    const changeAmount = basePrice * (changePercent / 100);
-    const newPrice = basePrice + changeAmount;
-    
-    // Generate volume
-    const volume = Math.floor(Math.random() * 1000000) + 100000;
-    
-    const update = {
-      id: Date.now() + Math.random(),
-      symbol: randomStock,
-      name: stockData[randomStock]?.name || randomStock,
-      price: newPrice.toFixed(2),
-      change: changeAmount.toFixed(2),
-      changePercent: changePercent.toFixed(2),
-      volume: volume,
-      timestamp: new Date(),
-      isPositive: changeAmount >= 0,
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
-
-    setStockUpdates(prev => [update, ...prev.slice(0, 49)]); // Keep last 50 updates
-    setUpdateCount(prev => prev + 1);
-
-    // Play notification sound for significant changes
-    if (notifications && Math.abs(changePercent) > 1) {
-      playNotificationSound();
-    }
-
-    // Update the base price for next calculation
-    if (stockData[randomStock]) {
-      stockData[randomStock].price = newPrice;
-    }
-  };
+  }, [autoRefresh, fetchAllStocks]);
 
   const playNotificationSound = () => {
     if (audioRef.current) {
@@ -131,10 +170,14 @@ const RealTimeUpdates = ({ darkMode }) => {
 
   const toggleAutoRefresh = () => {
     setAutoRefresh(!autoRefresh);
+    if (autoRefresh && intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   };
 
   const manualRefresh = () => {
-    generateStockUpdate();
+    fetchAllStocks();
   };
 
   const clearUpdates = () => {
@@ -201,6 +244,7 @@ const RealTimeUpdates = ({ darkMode }) => {
                   color={isConnected ? 'success' : 'error'}
                   variant="outlined"
                 />
+                {loading && <CircularProgress size={20} />}
               </Box>
             </Grid>
             
@@ -228,8 +272,8 @@ const RealTimeUpdates = ({ darkMode }) => {
                   label="Sound Alerts"
                 />
 
-                <Tooltip title="Manual Refresh">
-                  <IconButton onClick={manualRefresh} color="primary">
+                <Tooltip title="Refresh Now">
+                  <IconButton onClick={manualRefresh} color="primary" disabled={loading}>
                     <RefreshIcon />
                   </IconButton>
                 </Tooltip>
@@ -245,13 +289,24 @@ const RealTimeUpdates = ({ darkMode }) => {
             </Grid>
           </Grid>
 
-          <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <Typography variant="body2" color="text.secondary">
               Updates received: {updateCount}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Watching: {watchlist.length} stocks
             </Typography>
+            {lastFetchTime && (
+              <Typography variant="body2" color="text.secondary">
+                Last updated: {formatTime(lastFetchTime)}
+              </Typography>
+            )}
+            <Chip 
+              label="📊 Real Data from NSE" 
+              size="small" 
+              color="success" 
+              variant="outlined"
+            />
           </Box>
         </CardContent>
       </Card>
@@ -275,7 +330,7 @@ const RealTimeUpdates = ({ darkMode }) => {
 
               {stockUpdates.length === 0 ? (
                 <Alert severity="info" sx={{ borderRadius: 2 }}>
-                  No updates yet. {autoRefresh ? 'Waiting for real-time data...' : 'Enable auto-refresh to start receiving updates.'}
+                  {loading ? 'Fetching real stock data...' : 'No updates yet. Click refresh to fetch latest data.'}
                 </Alert>
               ) : (
                 <List sx={{ maxHeight: 500, overflow: 'auto' }}>
@@ -294,7 +349,7 @@ const RealTimeUpdates = ({ darkMode }) => {
                         <ListItemAvatar>
                           <Avatar
                             sx={{
-                              backgroundColor: stockData[update.symbol]?.color || '#757575',
+                              backgroundColor: stockMeta[update.symbol]?.color || '#757575',
                               width: 40,
                               height: 40,
                             }}
@@ -358,15 +413,14 @@ const RealTimeUpdates = ({ darkMode }) => {
               
               <List>
                 {watchlist.map((symbol) => {
-                  const data = stockData[symbol];
-                  const latestUpdate = stockUpdates.find(update => update.symbol === symbol);
+                  const data = watchlistData[symbol];
                   
                   return (
                     <ListItem key={symbol} sx={{ px: 0 }}>
                       <ListItemAvatar>
                         <Avatar
                           sx={{
-                            backgroundColor: data?.color || '#757575',
+                            backgroundColor: stockMeta[symbol]?.color || '#757575',
                             width: 32,
                             height: 32,
                           }}
@@ -377,23 +431,25 @@ const RealTimeUpdates = ({ darkMode }) => {
                       
                       <ListItemText
                         primary={symbol}
-                        secondary={data?.name}
+                        secondary={stockMeta[symbol]?.name || symbol}
                         primaryTypographyProps={{ variant: 'body2', fontWeight: 'bold' }}
                         secondaryTypographyProps={{ variant: 'caption' }}
                       />
                       
-                      {latestUpdate && (
+                      {data ? (
                         <Box sx={{ textAlign: 'right' }}>
                           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                            ₹{latestUpdate.price}
+                            ₹{data.price?.toFixed(2)}
                           </Typography>
                           <Typography
                             variant="caption"
-                            color={latestUpdate.isPositive ? 'success.main' : 'error.main'}
+                            color={data.changePercent >= 0 ? 'success.main' : 'error.main'}
                           >
-                            {latestUpdate.isPositive ? '+' : ''}{latestUpdate.changePercent}%
+                            {data.changePercent >= 0 ? '+' : ''}{data.changePercent?.toFixed(2)}%
                           </Typography>
                         </Box>
+                      ) : (
+                        <CircularProgress size={16} />
                       )}
                     </ListItem>
                   );

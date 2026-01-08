@@ -16,7 +16,7 @@ import Predictions from './components/Predictions';
 import About from './components/About';
 import Contact from './components/Contact';
 import StockPrediction from './components/StockPrediction';
-import VoiceCommand from './components/VoiceCommand';
+
 import Portfolio from './components/Portfolio';
 import StockComparison from './components/StockComparison';
 import RealTimeUpdates from './components/RealTimeUpdates';
@@ -44,15 +44,66 @@ function App() {
         palette: {
           mode: darkMode ? 'dark' : 'light',
           primary: {
-            main: darkMode ? '#64b5f6' : '#1976d2',
-            light: darkMode ? '#90caf9' : '#42a5f5',
-            dark: darkMode ? '#1976d2' : '#1565c0',
+            main: darkMode ? '#4f46e5' : '#6366f1',
+            light: darkMode ? '#7c3aed' : '#8b5cf6',
+            dark: darkMode ? '#3730a3' : '#4338ca',
+            contrastText: '#ffffff',
           },
           secondary: {
-            main: darkMode ? '#f48fb1' : '#e91e63',
-            light: darkMode ? '#ffc1e3' : '#f06292',
-            dark: darkMode ? '#c2185b' : '#ad1457',
+            main: darkMode ? '#06b6d4' : '#0891b2',
+            light: darkMode ? '#22d3ee' : '#67e8f9',
+            dark: darkMode ? '#0e7490' : '#0c4a6e',
+            contrastText: '#ffffff',
           },
+          background: {
+            default: darkMode ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+            paper: darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+          },
+          text: {
+            primary: darkMode ? '#f1f5f9' : '#1e293b',
+            secondary: darkMode ? '#cbd5e1' : '#475569',
+        },
+        typography: {
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          h1: {
+            fontWeight: 800,
+            fontSize: '3.5rem',
+            background: darkMode 
+              ? 'linear-gradient(45deg, #4f46e5 30%, #06b6d4 90%)'
+              : 'linear-gradient(45deg, #6366f1 30%, #0891b2 90%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          },
+          h2: {
+            fontWeight: 700,
+            fontSize: '2.5rem',
+          },
+          h3: {
+            fontWeight: 600,
+            fontSize: '2rem',
+          },
+        },
+        shape: {
+          borderRadius: 16,
+        },
+        shadows: darkMode
+          ? [
+              'none',
+              '0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.24)',
+              '0 3px 6px rgba(0,0,0,0.4), 0 3px 6px rgba(0,0,0,0.23)',
+              '0 10px 20px rgba(0,0,0,0.4), 0 6px 6px rgba(0,0,0,0.23)',
+              '0 14px 28px rgba(0,0,0,0.5), 0 10px 10px rgba(0,0,0,0.22)',
+              '0 19px 38px rgba(0,0,0,0.6), 0 15px 12px rgba(0,0,0,0.22)',
+            ]
+          : [
+              'none',
+              '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)',
+              '0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.10)',
+              '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.10)',
+              '0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.10)',
+              '0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.10)',
+            ],
           success: {
             main: darkMode ? '#66bb6a' : '#4caf50',
             light: darkMode ? '#81c784' : '#66bb6a',
@@ -200,7 +251,7 @@ function App() {
             </Suspense>
           </Container>
           <Footer />
-          <VoiceCommand darkMode={darkMode} />
+
         </Box>
       </Router>
     </ThemeProvider>

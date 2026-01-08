@@ -10,6 +10,10 @@ import os
 from datetime import datetime, timedelta
 import sys
 
+def debug_print(msg):
+    """Print debug messages to stderr"""
+    print(msg, file=sys.stderr)
+
 class SimpleLSTMPredictor:
     """
     A simplified stock predictor that uses linear regression as a fallback
@@ -22,9 +26,63 @@ class SimpleLSTMPredictor:
         self.model = None
         self.is_trained = False
         
-    def download_data(self, symbol, period="5y"):
-        """Download stock data from Yahoo Finance"""
+    def load_local_data(self, symbol):
+        """Load data from local JSON files"""
         try:
+            data_dir = os.path.join(os.path.dirname(__file__), 'data')
+            
+            # Clean symbol name (remove .NS, .BO suffixes for file lookup)
+            clean_symbol = symbol.replace('.NS', '').replace('.BO', '')
+            
+            # Try individual file first
+            individual_file = os.path.join(data_dir, f'{clean_symbol}_data.json')
+            if os.path.exists(individual_file):
+                with open(individual_file, 'r') as f:
+                    data = json.load(f)
+                    return self.convert_json_to_dataframe(data['data'])
+            
+            # Try master file
+            master_file = os.path.join(data_dir, 'popular_nifty50_stocks.json')
+            if os.path.exists(master_file):
+                with open(master_file, 'r') as f:
+                    master_data = json.load(f)
+                    if 'stocks' in master_data and clean_symbol in master_data['stocks']:
+                        return self.convert_json_to_dataframe(master_data['stocks'][clean_symbol]['data'])
+            
+            return None
+        except Exception as e:
+            debug_print(f"Error loading local data for {symbol}: {str(e)}")
+            return None
+    
+    def convert_json_to_dataframe(self, data):
+        """Convert JSON data to pandas DataFrame"""
+        df = pd.DataFrame(data)
+        df['date'] = pd.to_datetime(df['date'])
+        df.set_index('date', inplace=True)
+        
+        # Rename columns to match yfinance format
+        df.rename(columns={
+            'open': 'Open',
+            'high': 'High', 
+            'low': 'Low',
+            'close': 'Close',
+            'volume': 'Volume'
+        }, inplace=True)
+        
+        return df
+    
+    def download_data(self, symbol, period="5y"):
+        """Download stock data (local first, then Yahoo Finance)"""
+        try:
+            # First, try to load from local data
+            local_data = self.load_local_data(symbol)
+            if local_data is not None and not local_data.empty:
+                debug_print(f"Using local data for {symbol}: {len(local_data)} records")
+                return local_data
+            
+            debug_print(f"No local data for {symbol}, trying Yahoo Finance...")
+            
+            # Fallback to Yahoo Finance
             stock = yf.Ticker(symbol)
             data = stock.history(period=period)
             
@@ -199,7 +257,7 @@ class SimpleLSTMPredictor:
             return True
             
         except Exception as e:
-            print(f"Error saving model: {e}")
+            debug_print(f"Error saving model: {e}")
             return False
     
     def load_model(self, symbol, model_dir=None):
@@ -227,7 +285,7 @@ class SimpleLSTMPredictor:
             return True
             
         except Exception as e:
-            print(f"Error loading model: {e}")
+            debug_print(f"Error loading model: {e}")
             return False
 
 def main():
@@ -244,7 +302,7 @@ def main():
         # Create and train model
         predictor = SimpleLSTMPredictor()
         
-        print(f"Training model for {symbol}...")
+        debug_print(f"Training model for {symbol}...")
         result = predictor.train(symbol)
         
         if result['success']:

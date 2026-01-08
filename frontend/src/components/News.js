@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { OpenInNew as OpenInNewIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
-const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001';
+const API_URL = process.env.REACT_APP_API_BASE_URL || `http://${window.location.hostname}:5001`;
 
 function News() {
   const [news, setNews] = useState([]);

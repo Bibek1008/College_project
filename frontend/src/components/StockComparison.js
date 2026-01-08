@@ -21,12 +21,14 @@ import {
   FormControlLabel,
   CircularProgress,
   Paper,
+  Tooltip,
 } from '@mui/material';
 import {
   ShowChartOutlined as ChartIcon,
   BarChartOutlined as BarChartIcon,
   TrendingUpOutlined as TrendingUpIcon,
   TrendingDownOutlined as TrendingDownIcon,
+  InfoOutlined as InfoIcon,
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -48,6 +50,72 @@ import {
 
 const colors = ['#2196F3', '#4CAF50', '#FF9800', '#F44336', '#9C27B0', '#00BCD4', '#FFEB3B', '#795548'];
 
+// Calculate technical metrics from price data
+const calculateMetrics = (data) => {
+  if (!data || data.length < 2) return null;
+  
+  const prices = data.map(d => d.price).filter(p => p != null);
+  if (prices.length < 2) return null;
+  
+  // Calculate returns
+  const returns = [];
+  for (let i = 1; i < prices.length; i++) {
+    returns.push((prices[i] - prices[i-1]) / prices[i-1] * 100);
+  }
+  
+  // Volatility (standard deviation of returns)
+  const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+  const volatility = Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length);
+  
+  // Performance (total return %)
+  const performance = ((prices[prices.length - 1] - prices[0]) / prices[0]) * 100;
+  
+  // 5-day and 20-day moving averages
+  const sma5 = prices.slice(-5).reduce((a, b) => a + b, 0) / Math.min(5, prices.length);
+  const sma20 = prices.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, prices.length);
+  
+  // RSI calculation (14-period)
+  let gains = 0, losses = 0;
+  const period = Math.min(14, returns.length);
+  for (let i = returns.length - period; i < returns.length; i++) {
+    if (returns[i] > 0) gains += returns[i];
+    else losses -= returns[i];
+  }
+  const avgGain = gains / period;
+  const avgLoss = losses / period;
+  const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+  const rsi = 100 - (100 / (1 + rs));
+  
+  // Average volume
+  const volumes = data.map(d => d.volume).filter(v => v != null);
+  const avgVolume = volumes.length > 0 ? volumes.reduce((a, b) => a + b, 0) / volumes.length : 0;
+  
+  // Price range (high - low) for the period
+  const highs = data.map(d => d.high).filter(h => h != null);
+  const lows = data.map(d => d.low).filter(l => l != null);
+  const priceRange = highs.length > 0 && lows.length > 0 
+    ? Math.max(...highs) - Math.min(...lows) 
+    : 0;
+  
+  // Momentum (rate of change)
+  const momentum = prices.length >= 10 
+    ? ((prices[prices.length - 1] - prices[prices.length - 10]) / prices[prices.length - 10]) * 100 
+    : performance;
+  
+  return {
+    volatility: parseFloat(volatility.toFixed(2)),
+    performance: parseFloat(performance.toFixed(2)),
+    sma5: parseFloat(sma5.toFixed(2)),
+    sma20: parseFloat(sma20.toFixed(2)),
+    rsi: parseFloat(rsi.toFixed(1)),
+    avgVolume: Math.round(avgVolume),
+    priceRange: parseFloat(priceRange.toFixed(2)),
+    momentum: parseFloat(momentum.toFixed(2)),
+  };
+};
+
+const API_URL = process.env.REACT_APP_API_BASE_URL || `http://${window.location.hostname}:5002`;
+
 const StockComparison = () => {
   const [selectedStocks, setSelectedStocks] = useState(['TCS.NS', 'RELIANCE.NS']);
   const [stockData, setStockData] = useState({});
@@ -57,9 +125,11 @@ const StockComparison = () => {
   const [showPercentage, setShowPercentage] = useState(false);
 
   const availableStocks = [
-    'TCS.NS', 'RELIANCE.NS', 'INFY.NS', 'HDFC.NS', 'ICICI.NS',
-    'SBI.NS', 'ITC.NS', 'WIPRO.NS', 'HDFCBANK.NS', 'LT.NS',
-    'BHARTIARTL.NS', 'MARUTI.NS', 'ASIANPAINT.NS', 'KOTAKBANK.NS', 'HCLTECH.NS'
+    'TCS.NS', 'RELIANCE.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS',
+    'HINDUNILVR.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'KOTAKBANK.NS',
+    'LT.NS', 'AXISBANK.NS', 'ASIANPAINT.NS', 'MARUTI.NS', 'SUNPHARMA.NS',
+    'TITAN.NS', 'BAJFINANCE.NS', 'NESTLEIND.NS', 'WIPRO.NS', 'ULTRACEMCO.NS',
+    'HCLTECH.NS', 'POWERGRID.NS', 'NTPC.NS', 'ONGC.NS', 'TATASTEEL.NS'
   ];
 
   useEffect(() => {
@@ -160,15 +230,24 @@ const StockComparison = () => {
         const changePct = (Number(latest.price) && Number(previous.price))
           ? (((Number(latest.price) - Number(previous.price)) / Number(previous.price)) * 100)
           : null;
+        
+        // Calculate technical metrics
+        const metrics = calculateMetrics(data);
+        
         return {
           stock,
           price: Number(latest.price) || null,
           change: changePct,
           volume: Number(latest.volume) || null,
-          marketCap: Number(latest.marketCap) || null,
-          pe: Number(latest.pe) || null,
-          dividend: Number(latest.dividend) || null,
           trend: (Number(latest.price) && Number(previous.price) && Number(latest.price) > Number(previous.price)) ? 'up' : 'down',
+          // Technical metrics
+          volatility: metrics?.volatility || null,
+          performance: metrics?.performance || null,
+          sma5: metrics?.sma5 || null,
+          sma20: metrics?.sma20 || null,
+          rsi: metrics?.rsi || null,
+          avgVolume: metrics?.avgVolume || null,
+          momentum: metrics?.momentum || null,
         };
       })
       .filter(Boolean);
@@ -176,7 +255,7 @@ const StockComparison = () => {
 
   const getRadarData = () => {
     const comparison = getComparisonData();
-    const metrics = ['Performance', 'Volume', 'P/E Ratio', 'Market Cap', 'Dividend'];
+    const metrics = ['Performance', 'Momentum', 'RSI', 'Volume', 'Stability'];
 
     return metrics.map((metric) => {
       const dataPoint = { subject: metric };
@@ -184,19 +263,24 @@ const StockComparison = () => {
         const stockName = stock.stock.replace('.NS', '');
         switch (metric) {
           case 'Performance':
-            dataPoint[stockName] = Math.min(Math.abs(stock.change || 0) * 10, 100);
+            // Normalize performance to 0-100 scale
+            dataPoint[stockName] = Math.min(Math.max((stock.performance || 0) + 50, 0), 100);
+            break;
+          case 'Momentum':
+            // Normalize momentum to 0-100 scale
+            dataPoint[stockName] = Math.min(Math.max((stock.momentum || 0) + 50, 0), 100);
+            break;
+          case 'RSI':
+            // RSI is already 0-100
+            dataPoint[stockName] = stock.rsi || 50;
             break;
           case 'Volume':
-            dataPoint[stockName] = Math.min((stock.volume || 0) / 1_000_000, 100);
+            // Normalize volume (higher is better for liquidity)
+            dataPoint[stockName] = Math.min((stock.avgVolume || 0) / 100_000, 100);
             break;
-          case 'P/E Ratio':
-            dataPoint[stockName] = Math.min((stock.pe || 0) * 2, 100);
-            break;
-          case 'Market Cap':
-            dataPoint[stockName] = Math.min((stock.marketCap || 0) / 100_000_000, 100);
-            break;
-          case 'Dividend':
-            dataPoint[stockName] = Math.min((stock.dividend || 0) * 15, 100);
+          case 'Stability':
+            // Lower volatility = higher stability (invert volatility)
+            dataPoint[stockName] = Math.max(100 - (stock.volatility || 0) * 20, 0);
             break;
           default:
             dataPoint[stockName] = 0;
@@ -367,35 +451,93 @@ const StockComparison = () => {
             <Grid item xs={12}>
               <Card sx={{ borderRadius: 3 }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     Detailed Comparison
+                    <Tooltip title="Technical metrics calculated from historical price data">
+                      <InfoIcon fontSize="small" color="action" />
+                    </Tooltip>
                   </Typography>
-                  <TableContainer component={Paper}>
+                  <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
                     <Table size="small">
                       <TableHead>
-                        <TableRow>
-                          <TableCell>Stock</TableCell>
-                          <TableCell>Price (₹)</TableCell>
-                          <TableCell>Change (%)</TableCell>
-                          <TableCell>Volume</TableCell>
-                          <TableCell>Market Cap (₹)</TableCell>
-                          <TableCell>P/E Ratio</TableCell>
-                          <TableCell>Dividend (%)</TableCell>
-                          <TableCell>Trend</TableCell>
+                        <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Stock</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Price (₹)</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>
+                            <Tooltip title="Daily price change percentage">
+                              <span>Change (%)</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>
+                            <Tooltip title="Total return over selected period">
+                              <span>Performance (%)</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>
+                            <Tooltip title="Average trading volume">
+                              <span>Avg Volume</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>
+                            <Tooltip title="Price volatility (standard deviation of returns)">
+                              <span>Volatility</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>
+                            <Tooltip title="Relative Strength Index (14-day). Above 70 = overbought, below 30 = oversold">
+                              <span>RSI</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>
+                            <Tooltip title="5-day Simple Moving Average">
+                              <span>SMA-5</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Trend</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {comparisonData.map((row) => (
-                          <TableRow key={row.stock}>
-                            <TableCell>{row.stock}</TableCell>
-                            <TableCell>{row.price !== null ? row.price.toLocaleString() : '—'}</TableCell>
-                            <TableCell>{row.change !== null ? row.change.toFixed(2) : '—'}</TableCell>
-                            <TableCell>{row.volume !== null ? row.volume.toLocaleString() : '—'}</TableCell>
-                            <TableCell>{row.marketCap !== null ? `₹${row.marketCap.toLocaleString()}` : '—'}</TableCell>
-                            <TableCell>{row.pe !== null ? row.pe.toFixed(2) : '—'}</TableCell>
-                            <TableCell>{row.dividend !== null ? row.dividend.toFixed(2) : '—'}</TableCell>
+                          <TableRow key={row.stock} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
+                            <TableCell sx={{ fontWeight: 'medium' }}>{row.stock}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                              {row.price !== null ? `₹${row.price.toLocaleString()}` : '—'}
+                            </TableCell>
+                            <TableCell sx={{ 
+                              color: row.change > 0 ? 'success.main' : row.change < 0 ? 'error.main' : 'text.primary',
+                              fontWeight: 'medium'
+                            }}>
+                              {row.change !== null ? `${row.change > 0 ? '+' : ''}${row.change.toFixed(2)}%` : '—'}
+                            </TableCell>
+                            <TableCell sx={{ 
+                              color: row.performance > 0 ? 'success.main' : row.performance < 0 ? 'error.main' : 'text.primary',
+                              fontWeight: 'medium'
+                            }}>
+                              {row.performance !== null ? `${row.performance > 0 ? '+' : ''}${row.performance.toFixed(2)}%` : '—'}
+                            </TableCell>
                             <TableCell>
-                              {row.trend === 'up' ? <TrendingUpIcon color="success" /> : <TrendingDownIcon color="error" />}
+                              {row.avgVolume !== null ? row.avgVolume.toLocaleString() : '—'}
+                            </TableCell>
+                            <TableCell sx={{ 
+                              color: row.volatility > 3 ? 'error.main' : row.volatility > 1.5 ? 'warning.main' : 'success.main'
+                            }}>
+                              {row.volatility !== null ? `${row.volatility}%` : '—'}
+                            </TableCell>
+                            <TableCell sx={{ 
+                              color: row.rsi > 70 ? 'error.main' : row.rsi < 30 ? 'success.main' : 'text.primary',
+                              fontWeight: 'medium'
+                            }}>
+                              {row.rsi !== null ? row.rsi.toFixed(1) : '—'}
+                            </TableCell>
+                            <TableCell>
+                              {row.sma5 !== null ? `₹${row.sma5.toLocaleString()}` : '—'}
+                            </TableCell>
+                            <TableCell>
+                              {row.trend === 'up' ? (
+                                <TrendingUpIcon sx={{ color: 'success.main' }} />
+                              ) : (
+                                <TrendingDownIcon sx={{ color: 'error.main' }} />
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -413,4 +555,3 @@ const StockComparison = () => {
 };
 
 export default StockComparison;
-const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001';
