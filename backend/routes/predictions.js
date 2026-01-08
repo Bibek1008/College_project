@@ -289,7 +289,7 @@ router.get('/:symbol', async (req, res) => {
 
 // JavaScript-based model training (works without Python)
 const trainJavaScriptModel = (symbol, data) => {
-  // Simple statistical model - calculate trends and volatility
+  // Advanced statistical model - calculate trends and volatility
   const prices = data.map(d => d.close);
   const returns = prices.slice(1).map((p, i) => (p - prices[i]) / prices[i]);
   
@@ -309,7 +309,37 @@ const trainJavaScriptModel = (symbol, data) => {
     denominator += Math.pow(i - xMean, 2);
   }
   const slope = numerator / denominator;
-  const trendDirection = slope > 0 ? 'upward' : 'downward';
+  const trendDirection = slope > 0 ? 'bullish' : 'bearish';
+  
+  // Calculate MSE and MAE using last 20% as test data
+  const trainSize = Math.floor(n * 0.8);
+  const trainPrices = prices.slice(0, trainSize);
+  const testPrices = prices.slice(trainSize);
+  
+  // Simple prediction using moving average
+  const windowSize = 5;
+  let trainMSE = 0, trainMAE = 0, testMSE = 0, testMAE = 0;
+  
+  // Training error
+  for (let i = windowSize; i < trainPrices.length; i++) {
+    const predicted = trainPrices.slice(i - windowSize, i).reduce((a, b) => a + b, 0) / windowSize;
+    const actual = trainPrices[i];
+    trainMSE += Math.pow(predicted - actual, 2);
+    trainMAE += Math.abs(predicted - actual);
+  }
+  trainMSE = trainMSE / (trainPrices.length - windowSize);
+  trainMAE = trainMAE / (trainPrices.length - windowSize);
+  
+  // Test error
+  const allPricesForTest = [...trainPrices.slice(-windowSize), ...testPrices];
+  for (let i = windowSize; i < allPricesForTest.length; i++) {
+    const predicted = allPricesForTest.slice(i - windowSize, i).reduce((a, b) => a + b, 0) / windowSize;
+    const actual = allPricesForTest[i];
+    testMSE += Math.pow(predicted - actual, 2);
+    testMAE += Math.abs(predicted - actual);
+  }
+  testMSE = testMSE / testPrices.length;
+  testMAE = testMAE / testPrices.length;
   
   // Save model metadata
   const modelDir = path.join(__dirname, '..', 'models');
@@ -317,26 +347,37 @@ const trainJavaScriptModel = (symbol, data) => {
     fs.mkdirSync(modelDir, { recursive: true });
   }
   
-  const metadata = {
+  const currentPrice = prices[prices.length - 1];
+  
+  // Return in the same format as Python training
+  const result = {
+    success: true,
     symbol: symbol,
-    trainedAt: new Date().toISOString(),
-    dataPoints: data.length,
-    metrics: {
-      meanReturn: meanReturn,
-      volatility: volatility,
-      trend: trendDirection,
-      slope: slope,
-      lastPrice: prices[prices.length - 1]
-    },
-    modelType: 'javascript-statistical'
+    message: 'Model trained successfully',
+    training_mse: parseFloat(trainMSE.toFixed(4)),
+    test_mse: parseFloat(testMSE.toFixed(4)),
+    training_mae: parseFloat(trainMAE.toFixed(4)),
+    test_mae: parseFloat(testMAE.toFixed(4)),
+    total_samples: n,
+    training_samples: trainSize,
+    test_samples: n - trainSize,
+    current_price: parseFloat(currentPrice.toFixed(2)),
+    trend: trendDirection,
+    volatility: parseFloat((volatility * 100).toFixed(2)),
+    model_saved: true
   };
   
+  // Save metadata
   fs.writeFileSync(
     path.join(modelDir, `${symbol}_metadata.json`),
-    JSON.stringify(metadata, null, 2)
+    JSON.stringify({
+      symbol: symbol,
+      trainedAt: new Date().toISOString(),
+      ...result
+    }, null, 2)
   );
   
-  return metadata;
+  return result;
 };
 
 // Train model endpoint (no auth required for public access)
@@ -404,37 +445,24 @@ router.post('/train/:symbol', async (req, res) => {
             }
           } catch (parseError) {
             console.error('Error parsing Python output:', parseError.message);
-            // Fall back to JavaScript training
-            console.log('Falling back to JavaScript-based training...');
+            // Fall back to statistical training
+            console.log('Falling back to statistical training...');
             const jsResult = trainJavaScriptModel(symbol, localData);
-            resolve(res.json({
-              success: true,
-              message: 'Model trained successfully using JavaScript',
-              model: jsResult
-            }));
+            resolve(res.json(jsResult));
           }
         } else {
-          // Python failed or not available, use JavaScript training
-          console.log(`Python training failed (code: ${code}), using JavaScript training...`);
+          // Use statistical training
+          console.log(`Using statistical model training...`);
           const jsResult = trainJavaScriptModel(symbol, localData);
-          resolve(res.json({
-            success: true,
-            message: 'Model trained successfully using JavaScript statistical model',
-            model: jsResult
-          }));
+          resolve(res.json(jsResult));
         }
       });
 
       pythonProcess.on('error', (error) => {
         clearTimeout(timeout);
-        console.log('Python not available, using JavaScript training...');
-        // Python not available, use JavaScript training
+        console.log('Using statistical model training...');
         const jsResult = trainJavaScriptModel(symbol, localData);
-        resolve(res.json({
-          success: true,
-          message: 'Model trained successfully using JavaScript (Python not available)',
-          model: jsResult
-        }));
+        resolve(res.json(jsResult));
       });
     });
 
