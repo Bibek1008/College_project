@@ -349,16 +349,16 @@ const trainJavaScriptModel = (symbol, data) => {
   
   const currentPrice = prices[prices.length - 1];
   
-  // Return in the same format as Python training
+  // Return in the same format as Python training (matching frontend field names)
   const result = {
     success: true,
     symbol: symbol,
     message: 'Model trained successfully',
-    training_mse: parseFloat(trainMSE.toFixed(4)),
+    train_mse: parseFloat(trainMSE.toFixed(4)),
     test_mse: parseFloat(testMSE.toFixed(4)),
-    training_mae: parseFloat(trainMAE.toFixed(4)),
+    train_mae: parseFloat(trainMAE.toFixed(4)),
     test_mae: parseFloat(testMAE.toFixed(4)),
-    total_samples: n,
+    data_points: n,
     training_samples: trainSize,
     test_samples: n - trainSize,
     current_price: parseFloat(currentPrice.toFixed(2)),
