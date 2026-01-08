@@ -9,6 +9,10 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
+
+// Trust proxy for Koyeb/Vercel/cloud deployments (fixes rate limiter X-Forwarded-For issue)
+app.set('trust proxy', 1);
+
 const server = http.createServer(app);
 const rawOrigins = process.env.CORS_ORIGIN || "http://localhost:3000";
 const allowedOrigins = rawOrigins.split(',').map(s => s.trim()).filter(Boolean);
@@ -78,20 +82,26 @@ app.get('*', (req, res) => {
 
 // MongoDB connection with error handling
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/stockprediction';
+
+// Remove deprecated options and add better error handling
 mongoose.connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+    serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
+    socketTimeoutMS: 45000,
+}).then(() => {
+    console.log("MongoDB database connection established successfully");
 }).catch(err => {
     console.log("MongoDB connection failed, continuing without database:", err.message);
+    console.log("Auth features will be unavailable, but stock features will work.");
 });
 
 const connection = mongoose.connection;
-connection.once('open', () => {
-    console.log("MongoDB database connection established successfully");
-});
 
 connection.on('error', (err) => {
     console.log("MongoDB connection error:", err.message);
+});
+
+connection.on('disconnected', () => {
+    console.log("MongoDB disconnected");
 });
 
 // WebSocket functionality for real-time stock updates

@@ -9,7 +9,8 @@ frontend/build/
 
 backend/ml_training/models/
 backend/ml_training/logs/
-backend/ml_training/data/
+# Keep data files for deployment - removed from gitignore
+# backend/ml_training/data/
 
 backend/models/*.joblib
 backend/models/*_scaler.joblib
