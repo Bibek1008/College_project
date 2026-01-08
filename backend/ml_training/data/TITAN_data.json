@@ -1,7 +1,7 @@
 {
   "symbol": "TITAN",
   "yahoo_symbol": "TITAN.NS",
-  "download_date": "2026-01-08T15:05:51.736022",
+  "download_date": "2026-01-08T20:48:37.407241",
   "period": "2 years",
   "total_records": 496,
   "start_date": "2024-01-09",
@@ -515,7 +515,7 @@
       "date": "2024-04-15",
       "open": 3584.45,
       "high": 3616.45,
-      "low": 3567.56,
+      "low": 3567.55,
       "close": 3578.09,
       "volume": 854076
     },
@@ -714,7 +714,7 @@
     {
       "date": "2024-05-23",
       "open": 3361.85,
-      "high": 3438.76,
+      "high": 3438.77,
       "low": 3356.63,
       "close": 3430.47,
       "volume": 977789

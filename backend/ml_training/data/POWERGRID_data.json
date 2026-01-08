@@ -1,7 +1,7 @@
 {
   "symbol": "POWERGRID",
   "yahoo_symbol": "POWERGRID.NS",
-  "download_date": "2026-01-08T15:05:51.844108",
+  "download_date": "2026-01-08T20:48:37.588926",
   "period": "2 years",
   "total_records": 496,
   "start_date": "2024-01-09",
@@ -451,7 +451,7 @@
       "date": "2024-04-02",
       "open": 264.26,
       "high": 266.58,
-      "low": 263.55,
+      "low": 263.56,
       "close": 264.55,
       "volume": 13229425
     },
@@ -466,7 +466,7 @@
     {
       "date": "2024-04-04",
       "open": 267.62,
-      "high": 271.31,
+      "high": 271.32,
       "low": 260.29,
       "close": 262.75,
       "volume": 23722104

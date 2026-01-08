@@ -1,7 +1,7 @@
 {
   "symbol": "SUNPHARMA",
   "yahoo_symbol": "SUNPHARMA.NS",
-  "download_date": "2026-01-08T15:05:52.288077",
+  "download_date": "2026-01-08T20:48:37.976394",
   "period": "2 years",
   "total_records": 496,
   "start_date": "2024-01-09",
@@ -105,7 +105,7 @@
     },
     {
       "date": "2024-01-29",
-      "open": 1340.46,
+      "open": 1340.45,
       "high": 1395.3,
       "low": 1330.83,
       "close": 1375.66,
@@ -156,7 +156,7 @@
       "open": 1423.93,
       "high": 1451.42,
       "low": 1420.54,
-      "close": 1448.57,
+      "close": 1448.58,
       "volume": 1893995
     },
     {
@@ -986,7 +986,7 @@
     {
       "date": "2024-07-11",
       "open": 1581.17,
-      "high": 1582.65,
+      "high": 1582.66,
       "low": 1552.83,
       "close": 1562.16,
       "volume": 1707500
