@@ -52,8 +52,12 @@ app.get('/test', (req, res) => {
     res.sendFile(__dirname + '/test.html');
 });
 
-// Serve built React app
-app.use(express.static(require('path').join(__dirname, '../frontend/build')));
+// Serve built React app (only in development or if build exists)
+const frontendBuildPath = path.join(__dirname, '../frontend/build');
+const fs_check = require('fs');
+if (fs_check.existsSync(frontendBuildPath)) {
+    app.use(express.static(frontendBuildPath));
+}
 
 app.use('/api/stocks', stockRoutes);
 app.use('/api/predictions', predictionRoutes);
@@ -61,9 +65,15 @@ app.use('/api/news', newsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 
-// Catch-all handler: send back React's index.html file for any non-API routes
+// Catch-all handler: send back React's index.html file for any non-API routes (only if frontend build exists)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+    const indexPath = path.join(__dirname, '../frontend/build', 'index.html');
+    if (fs_check.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        // In production on Koyeb, frontend is on Vercel
+        res.json({ message: 'API server running. Frontend is hosted separately.', status: 'ok' });
+    }
 });
 
 // MongoDB connection with error handling
